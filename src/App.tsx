@@ -6,23 +6,62 @@ import { Input } from './components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card'
 import { Badge } from './components/ui/badge'
 import { Progress } from './components/ui/progress'
-import { CheckCircle2, Plus, Trash2, Target, TrendingUp, Clock, Zap, Code } from 'lucide-react'
+import { CheckCircle2, Plus, Trash2, Target, TrendingUp, Clock, Zap, Code, LogOut, User } from 'lucide-react'
 import { ThemeToggle } from './components/theme-toggle'
+import { LoginForm } from './components/auth/LoginForm'
+import { SignupForm } from './components/auth/SignupForm'
+import toast, { Toaster } from 'react-hot-toast'
 
 function App() {
   const [todos, setTodos] = useState<Todo[]>([])
   const [newTodo, setNewTodo] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(false)
+  const [user, setUser] = useState<any>(null)
+  const [showLogin, setShowLogin] = useState(true)
+  const [authLoading, setAuthLoading] = useState(true)
 
   useEffect(() => {
-    fetchTodos()
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        setUser(session.user)
+      }
+      setAuthLoading(false)
+    }
+
+    checkUser()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_, session) => {
+        if (session?.user) {
+          setUser(session.user)
+        } else {
+          setUser(null)
+          setTodos([])
+
+          setShowLogin(true)
+        }
+        setAuthLoading(false)
+      }
+    )
+
+    return () => subscription.unsubscribe()
   }, [])
 
+  useEffect(() => {
+    if (user) {
+      fetchTodos()
+    }
+  }, [user])
+
   const fetchTodos = async () => {
+    if (!user) return
+
     setLoading(true)
     const { data, error } = await supabase
       .from('Focusly')
       .select('*')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
     if (error) console.error('Fetch error:', error)
@@ -31,18 +70,25 @@ function App() {
   }
 
   const addTodo = async () => {
-    if (!newTodo.trim()) return
+    if (!newTodo.trim() || !user) return
 
     setLoading(true)
     const { data, error } = await supabase
       .from('Focusly')
-      .insert([{ title: newTodo, is_complete: false }])
+      .insert([{
+        title: newTodo,
+        is_complete: false,
+        user_id: user.id
+      }])
       .select()
 
-    if (error) console.error('Add error:', error)
-    else if (data) {
+    if (error) {
+      console.error('Add error:', error)
+      toast.error('Failed to add task')
+    } else if (data) {
       setTodos([data[0], ...todos])
       setNewTodo('')
+      toast.success('Task added!')
     }
     setLoading(false)
   }
@@ -53,8 +99,26 @@ function App() {
       .update({ is_complete: !isComplete })
       .eq('id', id)
 
-    if (error) console.error('Toggle error:', error)
-    else fetchTodos()
+    if (error) {
+      console.error('Toggle error:', error)
+      toast.error('Failed to update task')
+    } else {
+      const newTodos = todos.map(todo =>
+        todo.id === id ? { ...todo, is_complete: !isComplete } : todo
+      )
+      setTodos(newTodos)
+
+      const newCompletedCount = newTodos.filter(t => t.is_complete).length
+      const newTotalCount = newTodos.length
+
+      if (!isComplete && newCompletedCount === newTotalCount && newTotalCount > 0) {
+        toast.success('All tasks completed. Great job!', {
+          duration: 4000
+        })
+      } else {
+        toast.success(isComplete ? 'Task marked as incomplete 🔄' : 'Task completed!')
+      }
+    }
   }
 
   const deleteTodo = async (id: string) => {
@@ -63,8 +127,13 @@ function App() {
       .delete()
       .eq('id', id)
 
-    if (error) console.error('Delete error:', error)
-    else setTodos(todos.filter(todo => todo.id !== id))
+    if (error) {
+      console.error('Delete error:', error)
+      toast.error('Failed to delete task')
+    } else {
+      setTodos(todos.filter(todo => todo.id !== id))
+      toast.success('Task deleted successfully! 🗑️')
+    }
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -73,18 +142,83 @@ function App() {
     }
   }
 
+  const handleLogout = async () => {
+    sessionStorage.setItem('wasLoggedOut', 'true')
+    setShowLogin(true)
+    await supabase.auth.signOut()
+  }
+
+
+
   const completedCount = todos.filter(t => t.is_complete).length
   const totalCount = todos.length
   const progressPercentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0
 
+
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-slate-200 border-t-blue-500 rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-slate-600 dark:text-slate-400">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return showLogin ? (
+      <LoginForm
+        onSwitchToSignup={() => setShowLogin(false)}
+        onLoginSuccess={() => { }}
+      />
+    ) : (
+      <SignupForm
+        onSwitchToLogin={() => setShowLogin(true)}
+        onSignupSuccess={() => { }}
+      />
+    )
+  }
+
   return (
     <>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: 'var(--toast-bg)',
+            color: 'var(--toast-color)',
+            border: '1px solid var(--toast-border)',
+          },
+        }}
+      />
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
         <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:bg-grid-slate-700/25" />
 
         <div className="relative z-10 container mx-auto px-4 py-8 max-w-4xl">
-          <div className="flex justify-end mb-6">
-            <ThemeToggle />
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                <User className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-sm text-slate-600 dark:text-slate-400">
+                Welcome, {user.user_metadata?.name || user.email}
+              </span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                className="text-slate-600 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </Button>
+              <ThemeToggle />
+            </div>
           </div>
 
           <div className="text-center mb-12 animate-fade-in-up">
@@ -180,7 +314,7 @@ function App() {
                 <Progress value={progressPercentage} className="h-3" />
                 <div className="mt-2 text-sm text-slate-600 dark:text-slate-400">
                   {progressPercentage === 100 ? (
-                    <span className="text-green-600 dark:text-green-400">All tasks completed! Amazing work!</span>
+                    <span className="text-green-600 dark:text-green-400">All tasks completed. Amazing work!</span>
                   ) : (
                     <span>Keep going! You're making great progress.</span>
                   )}
@@ -214,54 +348,56 @@ function App() {
                   <p className="text-slate-600 dark:text-slate-400">Add your first focus item above to get started!</p>
                 </div>
               ) : (
-                <div className="divide-y divide-slate-200 dark:divide-slate-700">
-                  {todos.map((todo, index) => (
-                    <div
-                      key={todo.id}
-                      className={`p-6 transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 ${todo.is_complete ? 'opacity-75' : ''
-                        }`}
-                      style={{ animationDelay: `${index * 0.1}s` }}
-                    >
-                      <div className="flex items-center space-x-4">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleComplete(todo.id, todo.is_complete)}
-                          className={`w-10 h-10 rounded-full p-0 transition-all duration-200 ${todo.is_complete
+                <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent hover:scrollbar-thumb-slate-400 dark:hover:scrollbar-thumb-slate-500">
+                  <div className="divide-y divide-slate-200 dark:divide-slate-700">
+                    {todos.map((todo, index) => (
+                      <div
+                        key={todo.id}
+                        className={`p-6 transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 ${todo.is_complete ? 'opacity-75' : ''
+                          }`}
+                        style={{ animationDelay: `${index * 0.1}s` }}
+                      >
+                        <div className="flex items-center space-x-4">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleComplete(todo.id, todo.is_complete)}
+                            className={`w-10 h-10 rounded-full p-0 transition-all duration-200 ${todo.is_complete
                               ? 'bg-green-500 hover:bg-green-600 text-white'
                               : 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600'
-                            }`}
-                        >
-                          {todo.is_complete && <CheckCircle2 className="w-5 h-5" />}
-                        </Button>
-
-                        <div className="flex-1 min-w-0">
-                          <p
-                            className={`text-lg font-medium transition-all duration-200 ${todo.is_complete
-                                ? 'text-slate-500 dark:text-slate-400 line-through'
-                                : 'text-slate-900 dark:text-white'
                               }`}
                           >
-                            {todo.title}
-                          </p>
-                          {todo.is_complete && (
-                            <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-                              Completed
-                            </p>
-                          )}
-                        </div>
+                            {todo.is_complete && <CheckCircle2 className="w-5 h-5" />}
+                          </Button>
 
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deleteTodo(todo.id)}
-                          className="w-10 h-10 rounded-full p-0 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                          <div className="flex-1 min-w-0">
+                            <p
+                              className={`text-lg font-medium transition-all duration-200 ${todo.is_complete
+                                ? 'text-slate-500 dark:text-slate-400 line-through'
+                                : 'text-slate-900 dark:text-white'
+                                }`}
+                            >
+                              {todo.title}
+                            </p>
+                            {todo.is_complete && (
+                              <p className="text-sm text-green-600 dark:text-green-400 mt-1">
+                                Completed
+                              </p>
+                            )}
+                          </div>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteTodo(todo.id)}
+                            className="w-10 h-10 rounded-full p-0 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
             </CardContent>
