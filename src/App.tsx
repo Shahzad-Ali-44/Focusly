@@ -225,7 +225,7 @@ function App() {
             <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mb-6 shadow-2xl shadow-blue-500/25 hover:scale-110 transition-transform duration-300">
               <Target className="w-10 h-10 text-white" />
             </div>
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-200 bg-clip-text text-transparent mb-4">
+            <h1 className="text-5xl font-bold text-slate-900 dark:text-white mb-4">
               Focusly
             </h1>
             <p className="text-xl text-slate-600 dark:text-slate-400 mb-8">
