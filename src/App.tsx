@@ -533,13 +533,13 @@ function App() {
               </div>
               <div className="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-400">
                 <span>Developed with</span>
-                <Code className="h-4 w-4 text-blue-400 animate-pulse" />
+                <Code className="h-4 w-4 text-blue-700 dark:text-blue-400 animate-pulse" />
                 <span>by</span>
                 <a
                   href="https://shahzadali.vercel.app/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-indigo-400 hover:text-indigo-300 transition-colors font-medium"
+                  className="text-indigo-500 dark:text-indigo-400 hover:text-indigo-300 transition-colors font-medium"
                 >
                   Shahzad Ali
                 </a>
