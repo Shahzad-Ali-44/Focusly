@@ -111,7 +111,7 @@ export function LoginForm({ onSwitchToSignup, onLoginSuccess }: LoginFormProps) 
                     placeholder="Enter your email"
                     className="pl-10 h-12"
                     required
-                    autoComplete="email"
+                    autoComplete="off"
                     name="email"
                     id="email"
                   />
@@ -131,7 +131,7 @@ export function LoginForm({ onSwitchToSignup, onLoginSuccess }: LoginFormProps) 
                     placeholder="Enter your password"
                     className="pl-10 pr-10 h-12"
                     required
-                    autoComplete="current-password"
+                    autoComplete="off"
                     name="password"
                     id="password"
                   />

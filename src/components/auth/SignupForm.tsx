@@ -115,7 +115,7 @@ export function SignupForm({ onSwitchToLogin, onSignupSuccess }: SignupFormProps
                       placeholder="Enter your full name"
                       className="pl-10 h-12"
                       required
-                      autoComplete="name"
+                      autoComplete="off"
                       name="name"
                       id="name"
                     />
@@ -135,7 +135,7 @@ export function SignupForm({ onSwitchToLogin, onSignupSuccess }: SignupFormProps
                       placeholder="Enter your email"
                       className="pl-10 h-12"
                       required
-                      autoComplete="email"
+                      autoComplete="off"
                       name="email"
                       id="email"
                     />
@@ -155,7 +155,7 @@ export function SignupForm({ onSwitchToLogin, onSignupSuccess }: SignupFormProps
                       placeholder="Create a password"
                       className="pl-10 pr-10 h-12"
                       required
-                      autoComplete="new-password"
+                      autoComplete="off"
                       name="password"
                       id="password"
                     />
@@ -182,7 +182,7 @@ export function SignupForm({ onSwitchToLogin, onSignupSuccess }: SignupFormProps
                       placeholder="Confirm your password"
                       className="pl-10 pr-10 h-12"
                       required
-                      autoComplete="new-password"
+                      autoComplete="off"
                       name="confirmPassword"
                       id="confirmPassword"
                     />
