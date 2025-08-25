@@ -267,7 +267,7 @@ function App() {
 
           <Card className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-0 shadow-xl mb-8">
             <CardContent className="p-6">
-              <div className="flex space-x-4">
+              <div className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4">
                 <div className="flex-1">
                   <Input
                     type="text"
